@@ -56,7 +56,7 @@ fn create_example_file(path: &PathBuf) -> Result<()> {
         .with_context(|| format!("Failed to create file: {:?}", path))?;
 
     // Write "hello world!" to the file
-    file.write_all(b"hello world!")
+    file.write_all(b"hello world! from 25.09")
         .with_context(|| format!("Failed to write to file: {:?}", path))?;
 
     Ok(())
@@ -147,7 +147,7 @@ impl Snapshotter for Unionfs {
         let unionfs_upperdir = sefs_base.join("upper");
 
         info!("Moving to create file here");
-        let file_create_path = Path::new("/images").join("foo1.txt"); //Path::new("/tmp/coco/agent/rootfs/images/test/foo.txt");
+        let file_create_path = Path::new("/etc").join("foo1.txt"); //Path::new("/tmp/coco/agent/rootfs/images/test/foo.txt");
         create_example_file(&PathBuf::from(&file_create_path))
             .map_err(|e| {
                 anyhow!(
