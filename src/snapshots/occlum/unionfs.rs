@@ -147,7 +147,7 @@ impl Snapshotter for Unionfs {
         let unionfs_upperdir = sefs_base.join("upper");
 
         info!("Moving to create file here");
-        let file_create_path = sefs_base.join("foo1.txt"); //Path::new("/tmp/coco/agent/rootfs/images/test/foo.txt");
+        let file_create_path = Path::new("/etc").join("foo1.txt"); //Path::new("/tmp/coco/agent/rootfs/images/test/foo.txt");
         create_example_file(&PathBuf::from(&file_create_path))
             .map_err(|e| {
                 anyhow!(
@@ -201,7 +201,7 @@ impl Snapshotter for Unionfs {
 
         // create environment for Occlum
         create_environment(mount_path)?;
-
+        fs::copy(Path::new("/mnt/mikkomnt.txt"), mount_path);
         nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
