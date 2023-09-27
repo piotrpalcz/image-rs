@@ -204,6 +204,15 @@ impl Snapshotter for Unionfs {
         fs::copy(Path::new("/mnt/mikkomnt.txt"), mount_path);
         nix::mount::umount(mount_path)?;
 
+        create_example_file(&PathBuf::from(&sefs_base))
+            .map_err(|e| {
+                anyhow!(
+                "failed to write file {:?} with error: {}",
+                file_create_path,
+                e
+            )
+            })?;
+
         Ok(MountPoint {
             r#type: fs_type,
             mount_path: mount_path.to_path_buf(),
