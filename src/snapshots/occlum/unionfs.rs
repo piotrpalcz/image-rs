@@ -5,13 +5,17 @@
 // This unionfs file is used for occlum only
 
 use std::fs;
+use std::fs::{File, OpenOptions};
+use std::io::{Error, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
+use std::ffi::CString;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use dircpy::CopyBuilder;
 use fs_extra;
 use fs_extra::dir;
+use log::{warn, info};
 use nix::mount::MsFlags;
 
 use crate::snapshots::{MountPoint, Snapshotter};
@@ -45,6 +49,19 @@ fn create_dir(create_path: &PathBuf) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn create_example_file(path: &PathBuf) -> Result<()> {
+    // Open the file in write mode, creating it if it doesn't exist
+    let mut file = File::create(path)
+        .with_context(|| format!("Failed to create file: {:?}", path))?;
+
+    // Write "hello world!" to the file
+    file.write_all(b"c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61")
+        .with_context(|| format!("Failed to write to file: {:?}", path))?;
+
+    Ok(())
+
 }
 
 fn create_environment(mount_path: &Path) -> Result<()> {
@@ -114,6 +131,7 @@ impl Snapshotter for Unionfs {
         // the source type of runtime mount is "unionfs".
         let fs_type = String::from("unionfs");
         let source = Path::new(&fs_type);
+        log::error!("mount_path {}", mount_path.display());
 
         if !mount_path.exists() {
             fs::create_dir_all(mount_path)?;
@@ -128,6 +146,18 @@ impl Snapshotter for Unionfs {
         let sefs_base = Path::new("/images").join(cid).join("sefs");
         let unionfs_lowerdir = sefs_base.join("lower");
         let unionfs_upperdir = sefs_base.join("upper");
+
+        // info!("Moving to create file here");
+        // let file_create_path = Path::new("/etc").join("foo.txt"); //Path::new("/tmp/coco/agent/rootfs/images/test/foo.txt");
+        // create_example_file(&PathBuf::from(&file_create_path))
+        //     .map_err(|e| {
+        //         anyhow!(
+        //         "failed to write file {:?} with error: {}",
+        //         file_create_path,
+        //         e
+        //     )
+        //     })?;
+        
 
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
@@ -171,9 +201,49 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, &mount_path).overwrite(true).run()?;
         }
 
+        info!("Moving to create key file here");
+
+        // fs::create_dir_all(mount_path.join("/keys").join(cid))?;
+        // let file_create_path = mount_path.join("/keys").join("key.txt");
+        // create_example_file(&PathBuf::from(&file_create_path))
+        //     .map_err(|e| {
+        //         anyhow!(
+        //         "failed to write file {:?} with error: {}",
+        //         file_create_path,
+        //         e
+        //     )
+        //     })?;
+        let keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(keys_dir.clone())?;
+        let file_create_path_2 = keys_dir.join("key.txt");
+        create_example_file(&PathBuf::from(&file_create_path_2))
+        .map_err(|e| {
+            anyhow!(
+            "failed to write file {:?} with error: {}",
+            file_create_path_2,
+            e
+        )
+        })?;
+        let fs_type_2 = String::from("hostfs");
+        let mount_path_2 = Path::new("/keys");
+        for path in fs::read_dir("/").unwrap() {
+            info!("Name: {}", path.unwrap().path().display())
+        }
+
+        for file in fs::read_dir("/keys").unwrap() {
+            info!("File in /keys: {}", file.unwrap().path().display())
+        }
+        let mountpoint_c = CString::new(mount_path_2.to_str().unwrap()).unwrap();
+        nix::mount::mount(
+            Some(fs_type_2.as_str()),
+            mountpoint_c.as_c_str(),
+            Some(fs_type_2.as_str()),
+            flags,
+            Some("dir=/keys"),
+        ).unwrap_or_else(|e| log::error!("mount failed: {}", e));
+
         // create environment for Occlum
         create_environment(mount_path)?;
-
         nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
