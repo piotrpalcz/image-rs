@@ -137,7 +137,7 @@ impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
         // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
         // the source type of runtime mount is "unionfs".
-        let fs_type = String::from("unionfs");
+        let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
 
         if !mount_path.exists() {
@@ -150,17 +150,13 @@ impl Snapshotter for Unionfs {
             .ok_or(anyhow!("parent do not exist"))?
             .file_name()
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
-        let sefs_base = Path::new("/images").join(cid).join("sefs");
-        let unionfs_lowerdir = sefs_base.join("lower");
-        let unionfs_upperdir = sefs_base.join("upper");
 
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
         let options = format!(
-            "lowerdir={},upperdir={},key={}",
-            unionfs_lowerdir.display(),
-            unionfs_upperdir.display(),
+            "dir={},key={}",
+            Path::new("/images").join(cid).join("sefs/lower").display(),
             random_key
         );
 
