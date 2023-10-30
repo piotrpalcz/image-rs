@@ -43,9 +43,9 @@ fn clear_path(mount_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn create_dir(create_path: &PathBuf) -> Result<()> {
+fn create_dir(create_path: &Path) -> Result<()> {
     if !create_path.exists() {
-        fs::create_dir_all(create_path.as_path())?;
+        fs::create_dir_all(create_path)?;
     }
 
     Ok(())
@@ -81,7 +81,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     let path_lib64 = mount_path.join("lib64");
     create_dir(&path_lib64)?;
 
-    let lib64_libs = vec![LD_LIB];
+    let lib64_libs = [LD_LIB];
     let ori_path_lib64 = Path::new("/lib64");
     for lib in lib64_libs.iter() {
         from_paths.push(ori_path_lib64.join(lib));
@@ -105,7 +105,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
         .join("lib");
     fs::create_dir_all(&path_opt)?;
 
-    let occlum_lib = vec![
+    let occlum_lib = [
         "libc.so.6",
         "libdl.so.2",
         "libm.so.6",
@@ -125,7 +125,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     fs_extra::copy_items(&from_paths, &path_opt, &copy_options)?;
     from_paths.clear();
 
-    let sys_path = vec!["dev", "etc", "host", "lib", "proc", "root", "sys", "tmp"];
+    let sys_path = ["dev", "etc", "host", "lib", "proc", "root", "sys", "tmp"];
     for path in sys_path.iter() {
         create_dir(&mount_path.join(path))?;
     }
@@ -188,7 +188,7 @@ impl Snapshotter for Unionfs {
             let layer = layer_path_vec
                 .pop()
                 .ok_or(anyhow!("Pop() failed from Vec"))?;
-            CopyBuilder::new(layer, &mount_path).overwrite(true).run()?;
+            CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
@@ -312,6 +312,6 @@ mod tests {
             path_2.path().to_str().unwrap(),
         ];
 
-        assert!(!occlum_unionfs.mount(layer_path, mnt_path.as_ref()).is_ok());
+        assert!(occlum_unionfs.mount(layer_path, mnt_path.as_ref()).is_err());
     }
 }
