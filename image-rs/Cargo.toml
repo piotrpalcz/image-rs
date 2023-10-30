@@ -32,6 +32,7 @@ oci-spec = "0.6.2"
 ocicrypt-rs = { path = "../ocicrypt-rs", default-features = false, features = ["async-io"], optional = true }
 prost = { workspace = true, optional = true }
 protobuf = { workspace = true, optional = true }
+rand = "0.8.5"
 reqwest = { workspace = true, features = ["json"], optional = true }
 sequoia-openpgp = { version = "1.7.0", default-features = false, features = ["compression", "crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"], optional = true }
 serde = { workspace = true, features = ["serde_derive", "rc"] }
