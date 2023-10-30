@@ -5,14 +5,18 @@
 // This unionfs file is used for occlum only
 
 use std::fs;
+use std::fs::{File, OpenOptions};
+use std::io::{Error, ErrorKind, self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
+use std::ffi::CString;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use dircpy::CopyBuilder;
 use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
+use rand::Rng;
 
 use crate::snapshots::{MountPoint, Snapshotter};
 
@@ -39,12 +43,33 @@ fn clear_path(mount_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn create_dir(create_path: &Path) -> Result<()> {
+fn create_dir(create_path: &PathBuf) -> Result<()> {
     if !create_path.exists() {
-        fs::create_dir_all(create_path)?;
+        fs::create_dir_all(create_path.as_path())?;
     }
 
     Ok(())
+}
+
+fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
+    let mut file = File::create(path)
+        .with_context(|| format!("Failed to create file: {:?}", path))?;
+
+    file.write_all(key.as_bytes())
+        .with_context(|| format!("Failed to write to file: {:?}", path))?;
+
+    Ok(())
+
+}
+// returns randomly generted random 128 bit key
+fn generate_random_key() -> String {
+
+    let mut rng = rand::thread_rng();
+    let key: [u8; 16] = rng.gen();
+
+    let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
+
+    formatted_key
 }
 
 fn create_environment(mount_path: &Path) -> Result<()> {
@@ -56,7 +81,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     let path_lib64 = mount_path.join("lib64");
     create_dir(&path_lib64)?;
 
-    let lib64_libs = [LD_LIB];
+    let lib64_libs = vec![LD_LIB];
     let ori_path_lib64 = Path::new("/lib64");
     for lib in lib64_libs.iter() {
         from_paths.push(ori_path_lib64.join(lib));
@@ -80,7 +105,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
         .join("lib");
     fs::create_dir_all(&path_opt)?;
 
-    let occlum_lib = [
+    let occlum_lib = vec![
         "libc.so.6",
         "libdl.so.2",
         "libm.so.6",
@@ -100,7 +125,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     fs_extra::copy_items(&from_paths, &path_opt, &copy_options)?;
     from_paths.clear();
 
-    let sys_path = ["dev", "etc", "host", "lib", "proc", "root", "sys", "tmp"];
+    let sys_path = vec!["dev", "etc", "host", "lib", "proc", "root", "sys", "tmp"];
     for path in sys_path.iter() {
         create_dir(&mount_path.join(path))?;
     }
@@ -110,7 +135,9 @@ fn create_environment(mount_path: &Path) -> Result<()> {
 
 impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
-        let fs_type = String::from("sefs");
+        // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
+        // the source type of runtime mount is "unionfs".
+        let fs_type = String::from("unionfs");
         let source = Path::new(&fs_type);
 
         if !mount_path.exists() {
@@ -123,15 +150,18 @@ impl Snapshotter for Unionfs {
             .ok_or(anyhow!("parent do not exist"))?
             .file_name()
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
+        let sefs_base = Path::new("/images").join(cid).join("sefs");
+        let unionfs_lowerdir = sefs_base.join("lower");
+        let unionfs_upperdir = sefs_base.join("upper");
 
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
-        // "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61" is a hardcode key used to encrypt or decrypt the FS currently,
-        // and it will be replaced with dynamic key in the near future.
+        let random_key = generate_random_key();
         let options = format!(
-            "dir={},key={}",
-            Path::new("/images").join(cid).join("sefs/lower").display(),
-            "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61"
+            "lowerdir={},upperdir={},key={}",
+            unionfs_lowerdir.display(),
+            unionfs_upperdir.display(),
+            random_key
         );
 
         let flags = MsFlags::empty();
@@ -162,12 +192,43 @@ impl Snapshotter for Unionfs {
             let layer = layer_path_vec
                 .pop()
                 .ok_or(anyhow!("Pop() failed from Vec"))?;
-            CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
+            CopyBuilder::new(layer, &mount_path).overwrite(true).run()?;
         }
+        
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(sealing_keys_dir.clone())?;
+        let key_file_create_path = sealing_keys_dir.join("key.txt");
+        
+        create_key_file(&PathBuf::from(&key_file_create_path), &random_key)
+        .map_err(|e| {
+            anyhow!(
+            "failed to write key file {:?} with error: {}",
+            key_file_create_path,
+            e
+        )
+        })?;
+        
+        let hostfs_fstype = String::from("hostfs");
+        let keys_mount_path = Path::new("/keys");
+
+        let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
+        nix::mount::mount(
+            Some(hostfs_fstype.as_str()),
+            mountpoint_c.as_c_str(),
+            Some(hostfs_fstype.as_str()),
+            flags,
+            Some("dir=/keys"),
+        ).map_err(|e| {
+            anyhow!(
+                "failed to mount {:?} to {:?}, with error: {}",
+                hostfs_fstype.as_str(),
+                keys_mount_path,
+                e
+            )
+        })?;
 
         // create environment for Occlum
         create_environment(mount_path)?;
-
         nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
@@ -255,6 +316,6 @@ mod tests {
             path_2.path().to_str().unwrap(),
         ];
 
-        assert!(occlum_unionfs.mount(layer_path, mnt_path.as_ref()).is_err());
+        assert!(!occlum_unionfs.mount(layer_path, mnt_path.as_ref()).is_ok());
     }
 }
