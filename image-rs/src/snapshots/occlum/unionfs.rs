@@ -61,6 +61,7 @@ fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
 
 }
 // returns randomly generted random 128 bit key
+#[cfg(feature = "openssl")]
 fn generate_random_key() -> String {
 
     let mut key: [u8; 16] = [0u8; 16];
