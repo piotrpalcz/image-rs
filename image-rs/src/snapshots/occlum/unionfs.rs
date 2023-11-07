@@ -17,6 +17,13 @@ use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
 
+#[cfg(feature = "openssl")]
+use crate::native::*;
+
+#[cfg(all(feature = "rust-crypto", not(feature = "openssl")))]
+use rust_crypto::rand::OsRng;
+use rust_crypto::rand::RngCore;
+
 use crate::snapshots::{MountPoint, Snapshotter};
 
 const LD_LIB: &str = "ld-linux-x86-64.so.2";
@@ -64,7 +71,19 @@ fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
 fn generate_random_key() -> String {
 
     let mut key: [u8; 16] = [0u8; 16];
-    openssl::rand::rand_bytes(&mut random_key)?;
+
+    #[cfg(feature = "openssl")]
+    {
+        let random_bytes = rand_bytes(&mut key).expect("Random fill failed");
+        assert_eq!(random_bytes, key.len()); // Verify if enough random bytes are generated
+    }
+
+    #[cfg(feature = "rust-crypto")]
+    {
+        let mut rng = OsRng;
+        rng.fill_bytes(&mut key);
+    }
+
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
 
     formatted_key
@@ -131,7 +150,6 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "openssl")]
 impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
         // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
