@@ -16,7 +16,6 @@ use dircpy::CopyBuilder;
 use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
-use rand::Rng;
 
 use crate::snapshots::{MountPoint, Snapshotter};
 
@@ -64,9 +63,8 @@ fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
 // returns randomly generted random 128 bit key
 fn generate_random_key() -> String {
 
-    let mut rng = rand::thread_rng();
-    let key: [u8; 16] = rng.gen();
-
+    let mut key: [u8; 16] = [0u8; 16];
+    openssl::rand::rand_bytes(&mut random_key)?;
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
 
     formatted_key
