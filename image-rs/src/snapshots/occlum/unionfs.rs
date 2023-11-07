@@ -61,7 +61,6 @@ fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
 
 }
 // returns randomly generted random 128 bit key
-#[cfg(feature = "openssl")]
 fn generate_random_key() -> String {
 
     let mut key: [u8; 16] = [0u8; 16];
@@ -132,6 +131,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "openssl")]
 impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
         // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
