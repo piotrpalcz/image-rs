@@ -211,6 +211,7 @@ impl Snapshotter for Unionfs {
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
         let key_file_create_path = sealing_keys_dir.join("key.txt");
+        println!("Creating file in /key");
         
         create_key_file(&PathBuf::from(&key_file_create_path), &random_key)
         .map_err(|e| {
