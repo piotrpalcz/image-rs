@@ -85,7 +85,7 @@ fn generate_random_key() -> String {
 
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
 
-    println!("Formatted key: {}", formatted_key)
+    println!("Formatted key: {}", formatted_key);
     formatted_key
 }
 
