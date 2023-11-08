@@ -20,7 +20,7 @@ use nix::mount::MsFlags;
 #[cfg(feature = "openssl")]
 use crate::native::*;
 
-#[cfg(not((feature = "openssl")))]
+#[cfg(not(feature = "openssl"))]
 use rust_crypto::rand::{OsRng, RngCore};
 
 use crate::snapshots::{MountPoint, Snapshotter};
@@ -77,7 +77,7 @@ fn generate_random_key() -> String {
         assert_eq!(random_bytes, key.len()); // Verify if enough random bytes are generated
     }
 
-    #[cfg(not((feature = "openssl")))]
+    #[cfg(not(feature = "openssl"))]
     {
         let mut rng = OsRng;
         rng.fill_bytes(&mut key);
