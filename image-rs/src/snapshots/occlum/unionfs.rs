@@ -17,11 +17,8 @@ use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
 
-#[cfg(feature = "openssl")]
-use crate::native::*;
-
-#[cfg(not(feature = "openssl"))]
-use rust_crypto::rand::{OsRng, RngCore};
+mod ocicrypt_rs;
+use ocicrypt_rs::rand::rand_bytes;
 
 use crate::snapshots::{MountPoint, Snapshotter};
 
@@ -71,17 +68,8 @@ fn generate_random_key() -> String {
 
     let mut key: [u8; 16] = [0u8; 16];
 
-    #[cfg(feature = "openssl")]
-    {
-        let random_bytes = rand_bytes(&mut key).expect("Random fill failed");
-        assert_eq!(random_bytes, key.len()); // Verify if enough random bytes are generated
-    }
-
-    #[cfg(not(feature = "openssl"))]
-    {
-        let mut rng = OsRng;
-        rng.fill_bytes(&mut key);
-    }
+    let random_bytes = rand_bytes(&mut key).expect("Random fill failed");
+    assert_eq!(random_bytes, key.len()); // Verify if enough random bytes are generated
 
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
 
