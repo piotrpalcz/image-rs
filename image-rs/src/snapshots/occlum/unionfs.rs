@@ -17,7 +17,7 @@ use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
 
-use ocicrypt_rs::blockcypher::rand::rand_bytes;
+use ocicrypt_rs::blockcipher::rand::rand_bytes;
 
 use crate::snapshots::{MountPoint, Snapshotter};
 
