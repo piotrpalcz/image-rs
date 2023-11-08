@@ -21,8 +21,7 @@ use nix::mount::MsFlags;
 use crate::native::*;
 
 #[cfg(all(feature = "rust-crypto", not(feature = "openssl")))]
-use rust_crypto::rand::OsRng;
-use rust_crypto::rand::RngCore;
+use rust_crypto::rand::{OsRng, RngCore};
 
 use crate::snapshots::{MountPoint, Snapshotter};
 
