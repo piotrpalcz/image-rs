@@ -18,6 +18,8 @@ use fs_extra::dir;
 use nix::mount::MsFlags;
 use rand::Rng;
 
+use ocicrypt_rs::blockcipher::rand::rand_bytes;
+
 use crate::snapshots::{MountPoint, Snapshotter};
 
 const LD_LIB: &str = "ld-linux-x86-64.so.2";
@@ -64,8 +66,9 @@ fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
 // returns randomly generted random 128 bit key
 fn generate_random_key() -> String {
 
-    let mut rng = rand::thread_rng();
-    let key: [u8; 16] = rng.gen();
+    let mut key: [u8; 16] = [0u8; 16];
+
+    rand_bytes(&mut key).expect("Random fill failed");
 
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
 
