@@ -67,8 +67,7 @@ fn generate_random_key() -> String {
 
     let mut key: [u8; 16] = [0u8; 16];
 
-    let random_bytes = rand_bytes(&mut key).expect("Random fill failed");
-    assert_eq!(random_bytes, key.len()); // Verify if enough random bytes are generated
+    rand_bytes(&mut key).expect("Random fill failed");
 
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
 
