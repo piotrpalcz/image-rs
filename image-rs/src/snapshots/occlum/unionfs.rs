@@ -10,6 +10,7 @@ use std::io::{Error, ErrorKind, self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 use std::ffi::CString;
+use log::info;
 
 use anyhow::{anyhow, Context, Result};
 use dircpy::CopyBuilder;
@@ -71,7 +72,7 @@ fn generate_random_key() -> String {
     rand_bytes(&mut key).expect("Random fill failed");
 
     let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
-
+    info!("Formatted key: {}", formatted_key);
     formatted_key
 }
 
@@ -156,6 +157,7 @@ impl Snapshotter for Unionfs {
 
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
+        info!("creating key");
         let random_key = generate_random_key();
         let options = format!(
             "dir={},key={}",
@@ -164,7 +166,7 @@ impl Snapshotter for Unionfs {
         );
 
         let flags = MsFlags::empty();
-
+        info!("mouting 1");
         nix::mount::mount(
             Some(source),
             mount_path,
@@ -194,6 +196,7 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
+        info!("creating dir");
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
         let key_file_create_path = sealing_keys_dir.join("key.txt");
@@ -211,6 +214,7 @@ impl Snapshotter for Unionfs {
         let keys_mount_path = Path::new("/keys");
 
         let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
+        info!("mounting 2");
         nix::mount::mount(
             Some(hostfs_fstype.as_str()),
             mountpoint_c.as_c_str(),
