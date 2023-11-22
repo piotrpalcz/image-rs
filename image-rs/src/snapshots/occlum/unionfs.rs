@@ -159,10 +159,11 @@ impl Snapshotter for Unionfs {
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         info!("creating key");
         let random_key = generate_random_key();
+        let random_key_2 = std::ptr::null();
         let options = format!(
             "dir={},key={}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
-            random_key
+            random_key_2
         );
 
         let flags = MsFlags::empty();
