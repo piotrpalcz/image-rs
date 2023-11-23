@@ -161,9 +161,9 @@ impl Snapshotter for Unionfs {
         let null_pointer: *const i8 = std::ptr::null();
         let random_key = generate_random_key();
         let options = format!(
-            "dir={},key={:?}",
+            "dir={}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
-            null_pointer
+            random_key
         );
 
         let flags = MsFlags::empty();
@@ -217,9 +217,9 @@ impl Snapshotter for Unionfs {
         let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
         info!("mounting 2");
         nix::mount::mount(
-            Some(hostfs_fstype.as_str()),
+            Some(source),
             mountpoint_c.as_c_str(),
-            Some(hostfs_fstype.as_str()),
+            Some(fs_type.as_str()),
             flags,
             Some("dir=/keys"),
         ).map_err(|e| {
