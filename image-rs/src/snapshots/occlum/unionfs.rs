@@ -161,7 +161,7 @@ impl Snapshotter for Unionfs {
         let null_pointer = std::ptr::null();
         let random_key = generate_random_key();
         let options = format!(
-            "dir={},key={}",
+            "dir={},key={:?}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
             null_pointer
         );
