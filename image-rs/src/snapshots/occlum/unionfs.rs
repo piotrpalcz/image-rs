@@ -158,7 +158,7 @@ impl Snapshotter for Unionfs {
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         info!("creating key");
-        let null_pointer = std::ptr::null();
+        let null_pointer: *const i8 = std::ptr::null();
         let random_key = generate_random_key();
         let options = format!(
             "dir={},key={:?}",
