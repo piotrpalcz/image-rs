@@ -217,7 +217,7 @@ impl Snapshotter for Unionfs {
         );
         nix::mount::mount(
             Some(source),
-            mountpoint_c,
+            mountpoint_c.as_c_str(),
             Some(fs_type.as_str()),
             flags,
             Some(options_2.as_str()),
