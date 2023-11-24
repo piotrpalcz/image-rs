@@ -143,6 +143,12 @@ impl Snapshotter for Unionfs {
         // the source type of runtime mount is "unionfs".
         // store the rootfs in different places according to the cid
 
+        let cid = mount_path
+            .parent()
+            .ok_or(anyhow!("parent do not exist"))?
+            .file_name()
+            .ok_or(anyhow!("Unknown error: file name parse fail"))?;
+        
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
@@ -154,11 +160,6 @@ impl Snapshotter for Unionfs {
 
         let flags = MsFlags::empty();
 
-        let cid = mount_path
-            .parent()
-            .ok_or(anyhow!("parent do not exist"))?
-            .file_name()
-            .ok_or(anyhow!("Unknown error: file name parse fail"))?;
         info!("creating dir");
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
