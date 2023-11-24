@@ -141,9 +141,43 @@ impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
         // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
         // the source type of runtime mount is "unionfs".
+
+        info!("creating dir");
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(sealing_keys_dir.clone())?;
+        let key_file_create_path = sealing_keys_dir.join("key.txt");
+        
+        create_key_file(&PathBuf::from(&key_file_create_path), &random_key)
+        .map_err(|e| {
+            anyhow!(
+            "failed to write key file {:?} with error: {}",
+            key_file_create_path,
+            e
+        )
+        })?;
+
         let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
 
+        let hostfs_fstype = String::from("hostfs");
+        let keys_mount_path = Path::new("/keys");
+
+        let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
+        info!("mounting 2");
+        nix::mount::mount(
+            Some(source),
+            mountpoint_c.as_c_str(),
+            Some(fs_type.as_str()),
+            flags,
+            Some("dir=/keys"),
+        ).map_err(|e| {
+            anyhow!(
+                "failed to mount {:?} to {:?}, with error: {}",
+                hostfs_fstype.as_str(),
+                keys_mount_path,
+                e
+            )
+        })?;
         if !mount_path.exists() {
             fs::create_dir_all(mount_path)?;
         }
@@ -195,42 +229,9 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
-        info!("creating dir");
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
-        fs::create_dir_all(sealing_keys_dir.clone())?;
-        let key_file_create_path = sealing_keys_dir.join("key.txt");
-        
-        create_key_file(&PathBuf::from(&key_file_create_path), &random_key)
-        .map_err(|e| {
-            anyhow!(
-            "failed to write key file {:?} with error: {}",
-            key_file_create_path,
-            e
-        )
-        })?;
-        
         // create environment for Occlum
         create_environment(mount_path)?;
         nix::mount::umount(mount_path)?;
-        let hostfs_fstype = String::from("hostfs");
-        let keys_mount_path = Path::new("/keys");
-
-        let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
-        info!("mounting 2");
-        nix::mount::mount(
-            Some(source),
-            mountpoint_c.as_c_str(),
-            Some(fs_type.as_str()),
-            flags,
-            Some("dir=/keys"),
-        ).map_err(|e| {
-            anyhow!(
-                "failed to mount {:?} to {:?}, with error: {}",
-                hostfs_fstype.as_str(),
-                keys_mount_path,
-                e
-            )
-        })?;
 
 
         Ok(MountPoint {
