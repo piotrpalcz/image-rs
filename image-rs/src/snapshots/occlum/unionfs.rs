@@ -141,7 +141,24 @@ impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
         // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
         // the source type of runtime mount is "unionfs".
+        // store the rootfs in different places according to the cid
 
+        // For mounting trusted UnionFS at runtime of occlum,
+        // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
+        let random_key = generate_random_key();
+        let options = format!(
+            "dir={},key={}",
+            Path::new("/images").join(cid).join("sefs/lower").display(),
+            random_key
+        );
+
+        let flags = MsFlags::empty();
+
+        let cid = mount_path
+            .parent()
+            .ok_or(anyhow!("parent do not exist"))?
+            .file_name()
+            .ok_or(anyhow!("Unknown error: file name parse fail"))?;
         info!("creating dir");
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
@@ -182,23 +199,9 @@ impl Snapshotter for Unionfs {
             fs::create_dir_all(mount_path)?;
         }
 
-        // store the rootfs in different places according to the cid
-        let cid = mount_path
-            .parent()
-            .ok_or(anyhow!("parent do not exist"))?
-            .file_name()
-            .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
-        // For mounting trusted UnionFS at runtime of occlum,
-        // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
-        let random_key = generate_random_key();
-        let options = format!(
-            "dir={},key={}",
-            Path::new("/images").join(cid).join("sefs/lower").display(),
-            random_key
-        );
 
-        let flags = MsFlags::empty();
+
         info!("mouting 1");
         nix::mount::mount(
             Some(source),
