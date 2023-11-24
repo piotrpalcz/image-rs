@@ -211,12 +211,17 @@ impl Snapshotter for Unionfs {
         let keys_mount_path = Path::new("/keys");
 
         let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
+        let options_2 = format!(
+            "dir={},key={}",
+            keys_mount_path,
+            random_key
+        );
         nix::mount::mount(
             Some(source),
             mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/keys,key={}", random_key),
+            Some("dir=/keys,key={}"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
