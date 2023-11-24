@@ -212,13 +212,12 @@ impl Snapshotter for Unionfs {
 
         let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
         let options_2 = format!(
-            "dir={},key={}",
+            "dir={}",
             "/keys/scratch-base_v1.8/keys",
-            random_key
         );
         nix::mount::mount(
             Some(source),
-            mount_path,
+            mountpoint_c,
             Some(fs_type.as_str()),
             flags,
             Some(options_2.as_str()),
@@ -226,7 +225,7 @@ impl Snapshotter for Unionfs {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
                 hostfs_fstype.as_str(),
-                keys_mount_path,
+                "/keys/scratch-base_v1.8/keys",
                 e
             )
         })?;
