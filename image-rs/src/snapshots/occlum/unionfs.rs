@@ -157,8 +157,6 @@ impl Snapshotter for Unionfs {
 
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
-        info!("creating key");
-        let null_pointer: *const i8 = std::ptr::null();
         let random_key = generate_random_key();
         let options = format!(
             "dir={},key={}",
@@ -211,6 +209,9 @@ impl Snapshotter for Unionfs {
         )
         })?;
         
+        // create environment for Occlum
+        create_environment(mount_path)?;
+        nix::mount::umount(mount_path)?;
         let hostfs_fstype = String::from("hostfs");
         let keys_mount_path = Path::new("/keys");
 
@@ -231,9 +232,6 @@ impl Snapshotter for Unionfs {
             )
         })?;
 
-        // create environment for Occlum
-        create_environment(mount_path)?;
-        nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
             r#type: fs_type,
