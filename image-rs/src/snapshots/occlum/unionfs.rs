@@ -216,7 +216,7 @@ impl Snapshotter for Unionfs {
             mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/keys"),
+            Some("dir=/keys,key={}", random_key),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
