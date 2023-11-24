@@ -216,7 +216,7 @@ impl Snapshotter for Unionfs {
             mountpoint_c.as_c_str(),
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/keys"),
+            Some("dir=/images"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
