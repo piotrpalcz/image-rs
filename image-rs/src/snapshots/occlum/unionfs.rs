@@ -213,7 +213,7 @@ impl Snapshotter for Unionfs {
         let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
         let options_2 = format!(
             "dir={},key={}",
-            keys_mount_path,
+            "/keys",
             random_key
         );
         nix::mount::mount(
