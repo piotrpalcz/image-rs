@@ -231,7 +231,7 @@ impl Snapshotter for Unionfs {
             "/keys/scratch-base_v1.8/keys",
         );
 
-        visit_dirs(Path::new("/keys"))
+        visit_dirs(Path::new("/keys"));
         nix::mount::mount(
             Some(source),
             mountpoint_c.as_c_str(),
