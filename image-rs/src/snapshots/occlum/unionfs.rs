@@ -75,6 +75,21 @@ fn generate_random_key() -> String {
     formatted_key
 }
 
+fn visit_dirs(dir: &Path) -> std::io::Result<()> {
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                visit_dirs(&path)?;
+            } else {
+                println!("{}", path.display());
+            }
+        }
+    }
+    Ok(())
+}
+
 fn create_environment(mount_path: &Path) -> Result<()> {
     let mut from_paths = Vec::new();
     let mut copy_options = dir::CopyOptions::new();
@@ -215,6 +230,8 @@ impl Snapshotter for Unionfs {
             "dir={}",
             "/keys/scratch-base_v1.8/keys",
         );
+
+        visit_dirs(Path::new("/keys"))
         nix::mount::mount(
             Some(source),
             mountpoint_c.as_c_str(),
