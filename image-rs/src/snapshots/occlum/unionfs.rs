@@ -241,7 +241,7 @@ impl Snapshotter for Unionfs {
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
-                source.as_str(),
+                "sefs",
                 "/key",
                 e
             )
