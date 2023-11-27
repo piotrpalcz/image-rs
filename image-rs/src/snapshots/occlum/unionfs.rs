@@ -75,21 +75,6 @@ fn generate_random_key() -> String {
     formatted_key
 }
 
-fn visit_dirs(dir: &Path) -> std::io::Result<()> {
-    if dir.is_dir() {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                visit_dirs(&path)?;
-            } else {
-                println!("{}", path.display());
-            }
-        }
-    }
-    Ok(())
-}
-
 fn create_environment(mount_path: &Path) -> Result<()> {
     let mut from_paths = Vec::new();
     let mut copy_options = dir::CopyOptions::new();
@@ -209,6 +194,11 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
+        // create environment for Occlum
+        create_environment(mount_path)?;
+        nix::mount::umount(mount_path)?;
+
+        
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
         let key_file_create_path = sealing_keys_dir.join("key.txt");
@@ -225,31 +215,22 @@ impl Snapshotter for Unionfs {
         let hostfs_fstype = String::from("hostfs");
         let keys_mount_path = Path::new("/keys");
 
-        let mountpoint_c = CString::new(sealing_keys_dir.to_str().unwrap()).unwrap();
-        let options_2 = format!(
-            "dir={}",
-            "/keys/scratch-base_v1.8/keys",
-        );
-        
-        visit_dirs(Path::new("/keys"));
+        let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
         nix::mount::mount(
             Some(source),
             mountpoint_c.as_c_str(),
             Some(fs_type.as_str()),
             flags,
-            Some(options_2.as_str()),
+            Some("dir=/keys"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
-                "sefs",
-                "/keys",
+                source,
+                keys_mount_path,
                 e
             )
         })?;
 
-        // create environment for Occlum
-        create_environment(mount_path)?;
-        nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
             r#type: fs_type,
