@@ -209,7 +209,7 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
-        let sealing_keys_dir = Path::new("/key").join(cid).join("keys");
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
         let key_file_create_path = sealing_keys_dir.join("key.txt");
         
@@ -225,13 +225,13 @@ impl Snapshotter for Unionfs {
         let hostfs_fstype = String::from("hostfs");
         let keys_mount_path = Path::new("/keys");
 
-        let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
+        let mountpoint_c = CString::new(sealing_keys_dir.to_str().unwrap()).unwrap();
         let options_2 = format!(
             "dir={}",
-            "/key",
+            "/keys/scratch-base_v1.8/keys",
         );
         
-        visit_dirs(Path::new("/key"));
+        visit_dirs(Path::new("/keys"));
         nix::mount::mount(
             Some(source),
             mountpoint_c.as_c_str(),
@@ -242,7 +242,7 @@ impl Snapshotter for Unionfs {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
                 "sefs",
-                "/key",
+                "/keys",
                 e
             )
         })?;
