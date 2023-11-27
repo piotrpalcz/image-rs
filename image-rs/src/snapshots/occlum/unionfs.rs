@@ -194,11 +194,6 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
-        // create environment for Occlum
-        create_environment(mount_path)?;
-        nix::mount::umount(mount_path)?;
-
-        
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         fs::create_dir_all(sealing_keys_dir.clone())?;
         let key_file_create_path = sealing_keys_dir.join("key.txt");
@@ -217,20 +212,23 @@ impl Snapshotter for Unionfs {
 
         let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
         nix::mount::mount(
-            Some(source),
+            Some(hostfs_fstype.as_str()),
             mountpoint_c.as_c_str(),
-            Some(fs_type.as_str()),
+            Some(hostfs_fstype.as_str()),
             flags,
             Some("dir=/keys"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
-                source,
+                hostfs_fstype.as_str(),
                 keys_mount_path,
                 e
             )
         })?;
 
+        // create environment for Occlum
+        create_environment(mount_path)?;
+        nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
             r#type: fs_type,
