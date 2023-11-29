@@ -158,7 +158,8 @@ impl Snapshotter for Unionfs {
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
-        create_key_file(&PathBuf::from(Path::new("/key.txt")), &random_key)
+        fs::create_dir_all("/new_key")?;
+        create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
             "failed to write key file {:?} with error: {}",
@@ -175,7 +176,7 @@ impl Snapshotter for Unionfs {
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/keys"),
+            Some("dir=/keys/scratch-base_v1.8/keys"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
@@ -187,7 +188,11 @@ impl Snapshotter for Unionfs {
         // let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
-        fs::copy("/key.txt", "/keys/scratch-base_v1.8/keys").unwrap();
+        let mut copy_options = dir::CopyOptions::new();
+        let mut from_paths = Vec::new();
+        from_paths.push("/new_key")
+        copy_options.overwrite = true;
+        fs_extra::copy_items(&from_paths, "/keys/scratch-base_v1.8/keys", &copy_options)?;
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
