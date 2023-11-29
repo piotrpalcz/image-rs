@@ -194,7 +194,14 @@ impl Snapshotter for Unionfs {
         from_paths.push("/new_key");
         copy_options.overwrite = true;
         println!("copying");
-        fs_extra::copy_items(&from_paths, "/keys/scratch-base_v1.8/keys", &copy_options)?;
+        match fs::copy("/new_key/key.txt", "/keys/key.txt") {
+            Ok(_) => println!("File copied successfully"),
+            Err(e) => println!("Failed to copy file: {}", e),
+        }
+        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/keys/key.txt") {
+            Ok(_) => println!("File copied successfully"),
+            Err(e) => println!("Failed to copy file: {}", e),
+        }
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
