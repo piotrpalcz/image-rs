@@ -170,7 +170,7 @@ impl Snapshotter for Unionfs {
         })?;
         
         let hostfs_fstype = String::from("hostfs");
-        let keys_mount_path = Path::new("/keys/scratch-base_v1.8/keys");
+        let keys_mount_path = Path::new("/keys");
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
         nix::mount::mount(
             Some(source),
@@ -193,6 +193,7 @@ impl Snapshotter for Unionfs {
         let mut from_paths = Vec::new();
         from_paths.push("/new_key");
         copy_options.overwrite = true;
+        println!("copying")
         fs_extra::copy_items(&from_paths, "/keys/scratch-base_v1.8/keys", &copy_options)?;
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
