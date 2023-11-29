@@ -184,9 +184,9 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
-        fs::create_dir_all(sealing_keys_dir.clone())?;
-        let key_file_create_path = sealing_keys_dir.join("key.txt");
+        // let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        // fs::create_dir_all(sealing_keys_dir.clone())?;
+        // let key_file_create_path = sealing_keys_dir.join("key.txt");
         fs::copy("/key.txt", "/keys/scratch-base_v1.8/keys").unwrap();
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
