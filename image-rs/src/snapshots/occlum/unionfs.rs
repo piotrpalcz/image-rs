@@ -160,6 +160,8 @@ impl Snapshotter for Unionfs {
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
         fs::create_dir_all("/keys")?;
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(sealing_keys_dir.clone())?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
@@ -186,12 +188,9 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-        // let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
-        let mut copy_options = dir::CopyOptions::new();
-        let mut from_paths = Vec::new();
-        from_paths.push("/new_key");
         copy_options.overwrite = true;
         println!("copying");
         match fs::copy("/new_key/key.txt", "/keys/key.txt") {
