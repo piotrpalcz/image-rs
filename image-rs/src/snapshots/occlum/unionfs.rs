@@ -193,7 +193,7 @@ impl Snapshotter for Unionfs {
         let mut from_paths = Vec::new();
         from_paths.push("/new_key");
         copy_options.overwrite = true;
-        println!("copying")
+        println!("copying");
         fs_extra::copy_items(&from_paths, "/keys/scratch-base_v1.8/keys", &copy_options)?;
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
