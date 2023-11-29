@@ -162,7 +162,7 @@ impl Snapshotter for Unionfs {
         .map_err(|e| {
             anyhow!(
             "failed to write key file {:?} with error: {}",
-            key_file_create_path,
+            "/key.txt",
             e
         )
         })?;
