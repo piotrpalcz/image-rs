@@ -142,6 +142,7 @@ impl Snapshotter for Unionfs {
         // the source type of runtime mount is "unionfs".
         let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
+        let flags = MsFlags::empty();
 
         if !mount_path.exists() {
             fs::create_dir_all(mount_path)?;
@@ -157,14 +158,48 @@ impl Snapshotter for Unionfs {
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
+
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(sealing_keys_dir.clone())?;
+        let key_file_create_path = sealing_keys_dir.join("key.txt");
+        
+        create_key_file(&PathBuf::from(Path::new("/key.txt")), &random_key)
+        .map_err(|e| {
+            anyhow!(
+            "failed to write key file {:?} with error: {}",
+            key_file_create_path,
+            e
+        )
+        })?;
+        
+        let hostfs_fstype = String::from("hostfs");
+        let keys_mount_path = Path::new("/keys");
+        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
+        nix::mount::mount(
+            Some(source),
+            keys_mount_path,
+            Some(fs_type.as_str()),
+            flags,
+            Some("dir=/keys"),
+        ).map_err(|e| {
+            anyhow!(
+                "failed to mount {:?} to {:?}, with error: {}",
+                "sefs",
+                keys_mount_path,
+                e
+            )
+        })?;
+
+        fs::copy("/key.txt", "/keys/scratch-base_v1.8/keys").unwrap();
+        println!("Unmount {:#?}", keys_mount_path);
+        nix::mount::umount(keys_mount_path)?;
+
         let options = format!(
             "dir={},key={}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
             random_key
         );
-
-        let flags = MsFlags::empty();
-
+        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options.as_str());
         nix::mount::mount(
             Some(source),
             mount_path,
@@ -194,40 +229,9 @@ impl Snapshotter for Unionfs {
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
         
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
-        fs::create_dir_all(sealing_keys_dir.clone())?;
-        let key_file_create_path = sealing_keys_dir.join("key.txt");
-        
-        create_key_file(&PathBuf::from(&key_file_create_path), &random_key)
-        .map_err(|e| {
-            anyhow!(
-            "failed to write key file {:?} with error: {}",
-            key_file_create_path,
-            e
-        )
-        })?;
-        
-        let hostfs_fstype = String::from("hostfs");
-        let keys_mount_path = Path::new("/keys");
-
-        let mountpoint_c = CString::new(keys_mount_path.to_str().unwrap()).unwrap();
-        nix::mount::mount(
-            Some(hostfs_fstype.as_str()),
-            mountpoint_c.as_c_str(),
-            Some(hostfs_fstype.as_str()),
-            flags,
-            Some("dir=/keys"),
-        ).map_err(|e| {
-            anyhow!(
-                "failed to mount {:?} to {:?}, with error: {}",
-                hostfs_fstype.as_str(),
-                keys_mount_path,
-                e
-            )
-        })?;
-
         // create environment for Occlum
         create_environment(mount_path)?;
+        println!("Unmount {:#?}", mount_path);
         nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
