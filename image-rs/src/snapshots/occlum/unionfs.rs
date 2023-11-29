@@ -158,11 +158,6 @@ impl Snapshotter for Unionfs {
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
-
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
-        fs::create_dir_all(sealing_keys_dir.clone())?;
-        let key_file_create_path = sealing_keys_dir.join("key.txt");
-        
         create_key_file(&PathBuf::from(Path::new("/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
@@ -189,7 +184,9 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(sealing_keys_dir.clone())?;
+        let key_file_create_path = sealing_keys_dir.join("key.txt");
         fs::copy("/key.txt", "/keys/scratch-base_v1.8/keys").unwrap();
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
