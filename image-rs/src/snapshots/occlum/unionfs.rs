@@ -159,7 +159,7 @@ impl Snapshotter for Unionfs {
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        fs::create_dir_all("/keys/scratch-base_v1.8/keys")?;
+        fs::create_dir_all("/keys")?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
