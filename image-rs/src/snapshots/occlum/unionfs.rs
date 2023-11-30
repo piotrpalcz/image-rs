@@ -193,7 +193,6 @@ impl Snapshotter for Unionfs {
         
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
-        copy_options.overwrite = true;
         println!("copying");
         match fs::copy("/new_key/key.txt", "/keys/key.txt") {
             Ok(_) => println!("File copied successfully"),
