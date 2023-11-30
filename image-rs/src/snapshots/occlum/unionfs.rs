@@ -205,7 +205,7 @@ impl Snapshotter for Unionfs {
         let mut from_paths = Vec::new();
         let mut copy_options = dir::CopyOptions::new();
         copy_options.overwrite = true;
-        from_paths.push("/new_key");
+        from_paths.push("/new_key/key.txt");
         match fs_extra::copy_items(&from_paths, Path::new("/keys").join(cid).join("keys"), &copy_options) {
             Ok(_) => println!("copy dir success"),
             Err(e) => println!("Failed to copy dir: {}", e),
