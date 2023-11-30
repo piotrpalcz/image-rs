@@ -159,12 +159,12 @@ impl Snapshotter for Unionfs {
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        let sealing_keys_dir = Path::new("/new_key").join(cid).join("keys");
         match fs::create_dir_all(sealing_keys_dir.clone()) {
             Ok(_) => println!("created dir successfully"),
             Err(e) => println!("Failed to create dir: {}", e),
         }
-        create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
+        create_key_file(&PathBuf::from(sealing_keys_dir.join("key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
             "failed to write key file {:?} with error: {}",
@@ -190,17 +190,25 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-        
+        create_dir(Path::new("/keys").join(cid).join("keys"));
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
         println!("copying");
-        match fs::copy("/new_key/key.txt", "/keys/key.txt") {
-            Ok(_) => println!("File copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
-        }
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/keys/key.txt") {
-            Ok(_) => println!("File copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
+        // match fs::copy("/new_key/key.txt", "/keys/key.txt") {
+        //     Ok(_) => println!("File copied successfully"),
+        //     Err(e) => println!("Failed to copy file: {}", e),
+        // }
+        // match fs::copy("/new_key/key.txt", Path::new("/new_key").join(cid).join("keys")) {
+        //     Ok(_) => println!("File copied successfully"),
+        //     Err(e) => println!("Failed to copy file: {}", e),
+        // }
+        let mut from_paths = Vec::new();
+        let mut copy_options = dir::CopyOptions::new();
+        copy_options.overwrite = true;
+        from_paths.push("/new_key");
+        match fs_extra::copy_items(&from_paths, Path::new("/keys").join(cid).join("keys"), &copy_options) {
+            Ok(_) => println!("copy dir success"),
+            Err(e) => println!("Failed to copy dir: {}", e),
         }
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
