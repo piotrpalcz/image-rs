@@ -220,6 +220,10 @@ impl Snapshotter for Unionfs {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
+        match fs_extra::copy_items(&from_paths, &Path::new("/keys"), &copy_options) {
+            Ok(_) => println!("File fs_extra_copied successfully"),
+            Err(e) => println!("Failed to copy file: {}", e),
+        }
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
