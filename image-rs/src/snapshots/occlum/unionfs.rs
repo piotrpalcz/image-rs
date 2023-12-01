@@ -186,8 +186,8 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-        // let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
-        // fs::create_dir_all(sealing_keys_dir.clone())?;
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
         let mut copy_options = dir::CopyOptions::new();
         let mut from_paths = Vec::new();
