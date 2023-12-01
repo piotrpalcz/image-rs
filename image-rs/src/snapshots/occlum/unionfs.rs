@@ -147,10 +147,6 @@ impl Snapshotter for Unionfs {
         if !mount_path.exists() {
             fs::create_dir_all(mount_path)?;
         }
-        let keys_mount_path = Path::new("/keys");
-        if !keys_mount_path.exists() {
-            fs::create_dir_all(keys_mount_path)?;
-        }
 
         // store the rootfs in different places according to the cid
         let cid = mount_path
@@ -159,22 +155,12 @@ impl Snapshotter for Unionfs {
             .file_name()
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
-
-        match fs::create_dir_all(&Path::new("/keys").join(cid).join("keys")) {
-            Ok(_) => println!("/keys/cid/keys created successfully"),
-            Err(e) => println!("Failed to create /keys/cid/keys dir: {}", e),
-        }
-
-
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
-        let sealing_keys_dir = Path::new("/new_key").join(cid).join("keys");
-        match fs::create_dir_all(sealing_keys_dir.clone()) {
-            Ok(_) => println!("created dir successfully"),
-            Err(e) => println!("Failed to create dir: {}", e),
-        }
-        create_key_file(&PathBuf::from(sealing_keys_dir.join("key.txt")), &random_key)
+        fs::create_dir_all("/new_key")?;
+        fs::create_dir_all("/keys")?;
+        create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
             "failed to write key file {:?} with error: {}",
@@ -183,7 +169,8 @@ impl Snapshotter for Unionfs {
         )
         })?;
         
-        
+        let hostfs_fstype = String::from("hostfs");
+        let keys_mount_path = Path::new("/keys");
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
         nix::mount::mount(
             Some(source),
@@ -197,24 +184,21 @@ impl Snapshotter for Unionfs {
                 "sefs",
                 keys_mount_path,
                 e
-            )   
+            )
         })?;
+        // let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
-        println!("copying");
-        let mut from_paths = Vec::new();
         let mut copy_options = dir::CopyOptions::new();
+        let mut from_paths = Vec::new();
+        from_paths.push("/new_key");
         copy_options.overwrite = true;
-        from_paths.push(Path::new("/new_key").join(cid).join("keys"));
-        match fs_extra::copy_items(&from_paths, Path::new("/keys").join(cid), &copy_options) {
-            Ok(_) => println!("copy dir success"),
-            Err(e) => println!("Failed to copy dir: {}", e),
-        }
+        println!("copying");
         match fs::copy("/new_key/key.txt", "/keys/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
-        match fs::copy("/new_key/key.txt", Path::new("/new_key").join(cid).join("keys")) {
+        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/keys/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
