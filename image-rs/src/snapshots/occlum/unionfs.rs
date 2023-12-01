@@ -55,7 +55,7 @@ fn create_dir(create_path: &Path) -> Result<()> {
 
 fn list_dir_content(path: &Path) -> Result<()> {
     let paths = fs::read_dir(path).unwrap();
-
+    println!("Listing : {}",path.unwrap().path().display());
     for path in paths {
         println!("Name: {}", path.unwrap().path().display())
     }
@@ -93,14 +93,14 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     let path_lib64 = mount_path.join("lib64");
     create_dir(&path_lib64)?;
     println!("lib64");
-    list_dir_content(&path_lib64);
+    
 
     let lib64_libs = [LD_LIB];
     let ori_path_lib64 = Path::new("/lib64");
     for lib in lib64_libs.iter() {
         from_paths.push(ori_path_lib64.join(lib));
     }
-
+    
     // if ld-linux-x86-64.so.2 as symlink exist in ${path_lib64},
     // copy ld-linux-x86-64.so.2 from occlum to ${path_lib64} failed (file exists).
     // so firstly remove it.
@@ -111,7 +111,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
 
     fs_extra::copy_items(&from_paths, &path_lib64, &copy_options)?;
     from_paths.clear();
-
+    list_dir_content(&path_lib64);
     let path_opt = mount_path
         .join("opt")
         .join("occlum")
@@ -171,6 +171,7 @@ impl Snapshotter for Unionfs {
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
         fs::create_dir_all("/keys")?;
+        fs::create_dir_all("/key/scratch-base/scratch-base_v1.8/keys")?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
@@ -189,7 +190,7 @@ impl Snapshotter for Unionfs {
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/keys"),
+            Some("dir=/key"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
@@ -199,6 +200,7 @@ impl Snapshotter for Unionfs {
             )
         })?;
         list_dir_content(Path::new("/"));
+        list_dir_content(Path::new("/keys"));
         list_dir_content(Path::new("/keys"));
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         
