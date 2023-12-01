@@ -53,12 +53,13 @@ fn create_dir(create_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn list_dir_content(path: &Path) -> Result<(), std::io::Error>{
-    let paths = fs::read_dir().unwrap();
+fn list_dir_content(path: &Path) -> Result<()> {
+    let paths = fs::read_dir(path).unwrap();
 
     for path in paths {
         println!("Name: {}", path.unwrap().path().display())
     }
+    Ok(())
 }
 
 fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
