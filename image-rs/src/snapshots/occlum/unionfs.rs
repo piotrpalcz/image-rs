@@ -143,7 +143,7 @@ impl Snapshotter for Unionfs {
         let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
         let flags = MsFlags::empty();
-        prinltn!("Mount path : {}", mount_path)
+        prinltn!("Mount path : {}", mount_path);
         if !mount_path.exists() {
             println!("didnt exist");
             fs::create_dir_all(mount_path)?;
