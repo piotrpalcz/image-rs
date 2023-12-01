@@ -202,7 +202,7 @@ impl Snapshotter for Unionfs {
         list_dir_content(Path::new("/keys"));
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         
-        match create_dir(sealing_keys_dir.clone()) {
+        match create_dir(&sealing_keys_dir.clone()) {
             Ok(_) => println!("Sealing dir created successfully"),
             Err(e) => println!("Failed to create sealing dir file: {}", e),
         }
