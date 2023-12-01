@@ -92,6 +92,8 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     // copy the libs required by occlum to the mount path
     let path_lib64 = mount_path.join("lib64");
     create_dir(&path_lib64)?;
+    println!("lib64");
+    list_dir_content(&path_lib64);
 
     let lib64_libs = [LD_LIB];
     let ori_path_lib64 = Path::new("/lib64");
@@ -199,7 +201,8 @@ impl Snapshotter for Unionfs {
         list_dir_content(Path::new("/"));
         list_dir_content(Path::new("/keys"));
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
-        match fs::create_dir_all(sealing_keys_dir.clone()) {
+        
+        match create_dir(sealing_keys_dir.clone()) {
             Ok(_) => println!("Sealing dir created successfully"),
             Err(e) => println!("Failed to create sealing dir file: {}", e),
         }
