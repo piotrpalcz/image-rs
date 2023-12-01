@@ -156,7 +156,10 @@ impl Snapshotter for Unionfs {
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
 
-        fs::create_dir_all(&Path::new("/keys").join(cid).join("keys"))?;
+        match fs::create_dir_all(&Path::new("/keys").join(cid).join("keys")) {
+            Ok(_) => println!("/keys/cid/keys created successfully"),
+            Err(e) => println!("Failed to create /keys/cid/keys dir: {}", e),
+        }
 
 
         // For mounting trusted UnionFS at runtime of occlum,
@@ -177,7 +180,7 @@ impl Snapshotter for Unionfs {
         )
         })?;
         
-        let keys_mount_path = Path::new("/keys").join(cid).join("keys");
+        let keys_mount_path = Path::new("/keys");
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
         nix::mount::mount(
             Some(source),
@@ -196,7 +199,6 @@ impl Snapshotter for Unionfs {
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
         println!("copying");
-
         let mut from_paths = Vec::new();
         let mut copy_options = dir::CopyOptions::new();
         copy_options.overwrite = true;
