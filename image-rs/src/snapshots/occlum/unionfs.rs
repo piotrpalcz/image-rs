@@ -143,9 +143,15 @@ impl Snapshotter for Unionfs {
         let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
         let flags = MsFlags::empty();
-
+        prinltn!("Mount path : {}", mount_path)
         if !mount_path.exists() {
+            println!("didnt exist");
             fs::create_dir_all(mount_path)?;
+        }
+
+        let keys_mount_path = Path::new("/keys");
+        if !keys_mount_path.exists() {
+            fs::create_dir_all(keys_mount_path)?;
         }
 
         // store the rootfs in different places according to the cid
@@ -165,7 +171,6 @@ impl Snapshotter for Unionfs {
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
-        fs::create_dir_all("/new_key")?;
         let sealing_keys_dir = Path::new("/new_key").join(cid).join("keys");
         match fs::create_dir_all(sealing_keys_dir.clone()) {
             Ok(_) => println!("created dir successfully"),
@@ -180,7 +185,7 @@ impl Snapshotter for Unionfs {
         )
         })?;
         
-        let keys_mount_path = Path::new("/keys");
+        
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
         nix::mount::mount(
             Some(source),
@@ -194,7 +199,7 @@ impl Snapshotter for Unionfs {
                 "sefs",
                 keys_mount_path,
                 e
-            )
+            )   
         })?;
         // fs::create_dir_all(sealing_keys_dir.clone())?;
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
