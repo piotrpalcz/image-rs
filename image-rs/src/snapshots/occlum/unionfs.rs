@@ -181,7 +181,7 @@ impl Snapshotter for Unionfs {
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
         nix::mount::mount(
             Some(source),
-            keys_mount_path,
+            &keys_mount_path,
             Some(fs_type.as_str()),
             flags,
             Some("dir=/keys"),
@@ -214,7 +214,7 @@ impl Snapshotter for Unionfs {
             Err(e) => println!("Failed to copy file: {}", e),
         }
         println!("Unmount {:#?}", keys_mount_path);
-        nix::mount::umount(keys_mount_path)?;
+        nix::mount::umount(&keys_mount_path)?;
 
         let options = format!(
             "dir={},key={}",
