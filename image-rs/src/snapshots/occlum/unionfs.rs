@@ -53,6 +53,14 @@ fn create_dir(create_path: &Path) -> Result<()> {
     Ok(())
 }
 
+fn list_dir_content(path: &Path) -> Result<(), std::io::Error>{
+    let paths = fs::read_dir().unwrap();
+
+    for path in paths {
+        println!("Name: {}", path.unwrap().path().display())
+    }
+}
+
 fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
     let mut file = File::create(path)
         .with_context(|| format!("Failed to create file: {:?}", path))?;
@@ -171,6 +179,7 @@ impl Snapshotter for Unionfs {
         
         let hostfs_fstype = String::from("hostfs");
         let keys_mount_path = Path::new("/keys");
+        list_dir_content(Path::new("/"));
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
         nix::mount::mount(
             Some(source),
@@ -186,6 +195,8 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
+        list_dir_content(Path::new("/"));
+        list_dir_content(Path::new("/keys"));
         let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
         match fs::create_dir_all(sealing_keys_dir.clone()) {
             Ok(_) => println!("Sealing dir created successfully"),
