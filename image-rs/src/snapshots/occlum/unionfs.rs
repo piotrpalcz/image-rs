@@ -55,7 +55,7 @@ fn create_dir(create_path: &Path) -> Result<()> {
 
 fn list_dir_content(path: &Path) -> Result<()> {
     let paths = fs::read_dir(path).unwrap();
-    println!("Listing : {}",path.unwrap().path().display());
+    println!("Listing : {}", path.display());
     for path in paths {
         println!("Name: {}", path.unwrap().path().display())
     }
