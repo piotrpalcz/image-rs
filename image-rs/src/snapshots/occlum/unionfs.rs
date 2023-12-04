@@ -154,6 +154,7 @@ impl Snapshotter for Unionfs {
         let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
         let flags = MsFlags::empty();
+        println!("mount_path {} ", mount_path.display());
 
         if !mount_path.exists() {
             fs::create_dir_all(mount_path)?;
@@ -172,7 +173,7 @@ impl Snapshotter for Unionfs {
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        fs::create_dir_all(&sealing_keys_dir)?;
+        // fs::create_dir_all(&sealing_keys_dir)?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
@@ -185,13 +186,13 @@ impl Snapshotter for Unionfs {
         let hostfs_fstype = String::from("hostfs");
         let keys_mount_path = Path::new("/keys");
         list_dir_content(Path::new("/"));
-        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, "dir=/keys");
+        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, sealing_keys_dir.display());
         nix::mount::mount(
             Some(source),
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/keys"),
+            Some(format!("dir={}", sealing_keys_dir.display())),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
@@ -200,14 +201,7 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-        list_dir_content(Path::new("/"));
-        list_dir_content(Path::new("/keys"));
         
-        
-        match create_dir(&sealing_keys_dir.clone()) {
-            Ok(_)  => println!("Sealing dir created successfully"),
-            Err(e) => println!("Failed to create sealing dir file: {}", e),
-        }
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
         let mut copy_options = dir::CopyOptions::new();
         let mut from_paths = Vec::new();
