@@ -192,7 +192,7 @@ impl Snapshotter for Unionfs {
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some(format!("dir={}", sealing_keys_dir.display())),
+            Some(format!("dir={}", &sealing_keys_dir.display())),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
