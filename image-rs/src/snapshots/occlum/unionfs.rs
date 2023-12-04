@@ -166,12 +166,13 @@ impl Snapshotter for Unionfs {
             .file_name()
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
+        let sealing_keys_dir = Path::new("/keys").join(cid).join("sefs/lower");
+
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        fs::create_dir_all("/keys")?;
-        fs::create_dir_all("/key/scratch-base/scratch-base_v1.8/keys")?;
+        fs::create_dir_all(&sealing_keys_dir)?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
         .map_err(|e| {
             anyhow!(
@@ -190,7 +191,7 @@ impl Snapshotter for Unionfs {
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some("dir=/key"),
+            Some("dir=/keys"),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
@@ -201,11 +202,10 @@ impl Snapshotter for Unionfs {
         })?;
         list_dir_content(Path::new("/"));
         list_dir_content(Path::new("/keys"));
-        list_dir_content(Path::new("/keys"));
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("keys");
+        
         
         match create_dir(&sealing_keys_dir.clone()) {
-            Ok(_) => println!("Sealing dir created successfully"),
+            Ok(_)  => println!("Sealing dir created successfully"),
             Err(e) => println!("Failed to create sealing dir file: {}", e),
         }
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
@@ -214,11 +214,11 @@ impl Snapshotter for Unionfs {
         from_paths.push("/new_key");
         copy_options.overwrite = true;
         println!("copying");
-        match fs::copy("/new_key/key.txt", "/keys/key.txt") {
+        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/sefs/upper/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/keys/key.txt") {
+        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/sefs/lower/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
