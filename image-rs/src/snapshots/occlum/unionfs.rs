@@ -173,7 +173,7 @@ impl Snapshotter for Unionfs {
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        // fs::create_dir_all(&sealing_keys_dir)?;
+        fs::create_dir_all(&sealing_keys_dir)?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
             .map_err(|e| {
                 anyhow!(
@@ -184,14 +184,13 @@ impl Snapshotter for Unionfs {
             })?;
 
         let hostfs_fstype = String::from("hostfs");
-        let keys_mount_path = Path::new("/keys");
         list_dir_content(Path::new("/"));
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, sealing_keys_dir.display());
 
-        let options_2 = format!("dir={:?}", Path::new("/keys"));
+        let options_2 = format!("dir={:?}", Path::new("/keys").join(cid).join("sefs/lower"));
         nix::mount::mount(
             Some(source),
-            keys_mount_path,
+            sealing_keys_dir,
             Some(fs_type.as_str()),
             flags,
             Some(options_2.as_str()),
@@ -199,7 +198,7 @@ impl Snapshotter for Unionfs {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
                 "sefs",
-                keys_mount_path,
+                sealing_keys_dir,
                 e
             )
         })?;
