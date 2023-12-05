@@ -5,20 +5,14 @@
 // This unionfs file is used for occlum only
 
 use std::fs;
-use std::fs::{File, OpenOptions};
-use std::io::{Error, ErrorKind, self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
-use std::ffi::CString;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use dircpy::CopyBuilder;
 use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
-use rand::Rng;
-
-use ocicrypt_rs::blockcipher::rand::rand_bytes;
 
 use crate::snapshots::{MountPoint, Snapshotter};
 
@@ -53,37 +47,6 @@ fn create_dir(create_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn list_dir_content(path: &Path) -> Result<()> {
-    let paths = fs::read_dir(path).unwrap();
-    println!("Listing : {}", path.display());
-    for path in paths {
-        println!("Name: {}", path.unwrap().path().display())
-    }
-    Ok(())
-}
-
-fn create_key_file(path: &PathBuf, key: &str) -> Result<()> {
-    let mut file = File::create(path)
-        .with_context(|| format!("Failed to create file: {:?}", path))?;
-
-    file.write_all(key.as_bytes())
-        .with_context(|| format!("Failed to write to file: {:?}", path))?;
-
-    Ok(())
-
-}
-// returns randomly generted random 128 bit key
-fn generate_random_key() -> String {
-
-    let mut key: [u8; 16] = [0u8; 16];
-
-    rand_bytes(&mut key).expect("Random fill failed");
-
-    let formatted_key = key.iter().map(|byte| format!("{:02x}", byte)).collect::<Vec<String>>().join("-");
-
-    formatted_key
-}
-
 fn create_environment(mount_path: &Path) -> Result<()> {
     let mut from_paths = Vec::new();
     let mut copy_options = dir::CopyOptions::new();
@@ -92,8 +55,6 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     // copy the libs required by occlum to the mount path
     let path_lib64 = mount_path.join("lib64");
     create_dir(&path_lib64)?;
-    println!("lib64");
-
 
     let lib64_libs = [LD_LIB];
     let ori_path_lib64 = Path::new("/lib64");
@@ -111,7 +72,7 @@ fn create_environment(mount_path: &Path) -> Result<()> {
 
     fs_extra::copy_items(&from_paths, &path_lib64, &copy_options)?;
     from_paths.clear();
-    list_dir_content(&path_lib64);
+
     let path_opt = mount_path
         .join("opt")
         .join("occlum")
@@ -149,12 +110,8 @@ fn create_environment(mount_path: &Path) -> Result<()> {
 
 impl Snapshotter for Unionfs {
     fn mount(&mut self, layer_path: &[&str], mount_path: &Path) -> Result<MountPoint> {
-        // From the description of https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss ,
-        // the source type of runtime mount is "unionfs".
         let fs_type = String::from("sefs");
         let source = Path::new(&fs_type);
-        let flags = MsFlags::empty();
-        println!("mount_path {} ", mount_path.display());
 
         if !mount_path.exists() {
             fs::create_dir_all(mount_path)?;
@@ -167,73 +124,18 @@ impl Snapshotter for Unionfs {
             .file_name()
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
-        let sealing_keys_dir = Path::new("/images").join(cid).join("sefs/lower");
-
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
-        let random_key = generate_random_key();
-        fs::create_dir_all("/new_key")?;
-        // fs::create_dir_all(&sealing_keys_dir)?;
-        create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
-            .map_err(|e| {
-                anyhow!(
-            "failed to write key file {:?} with error: {}",
-            "/key.txt",
-            e
-        )
-            })?;
-        let keys_mount_path = Path::new("/keys");
-        
-        if !keys_mount_path.exists() {
-            fs::create_dir_all(keys_mount_path)?;
-        }
-
-        list_dir_content(Path::new("/"));
-        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, sealing_keys_dir.display());
-
-        let options_2 = format!("dir={:?}", sealing_keys_dir);
-        nix::mount::mount(
-            Some(source),
-            keys_mount_path,
-            Some(fs_type.as_str()),
-            flags,
-            Some(options_2.as_str()),
-        ).map_err(|e| {
-            anyhow!(
-                "failed to mount {:?} to {:?}, with error: {}",
-                "sefs",
-                keys_mount_path,
-                e
-            )
-        })?;
-
-        // let key_file_create_path = sealing_keys_dir.join("key.txt");
-        let mut copy_options = dir::CopyOptions::new();
-        let mut from_paths = Vec::new();
-        from_paths.push("/new_key");
-        copy_options.overwrite = true;
-        println!("copying");
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/sefs/upper/key.txt") {
-            Ok(_) => println!("File copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
-        }
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/sefs/lower/key.txt") {
-            Ok(_) => println!("File copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
-        }
-        match fs_extra::copy_items(&from_paths, &Path::new("/keys"), &copy_options) {
-            Ok(_) => println!("File fs_extra_copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
-        }
-        println!("Unmount {:#?}", keys_mount_path);
-        nix::mount::umount(keys_mount_path)?;
-
+        // "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61" is a hardcode key used to encrypt or decrypt the FS currently,
+        // and it will be replaced with dynamic key in the near future.
         let options = format!(
             "dir={},key={}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
-            random_key
+            "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61"
         );
-        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options.as_str());
+
+        let flags = MsFlags::empty();
+
         nix::mount::mount(
             Some(source),
             mount_path,
@@ -241,14 +143,14 @@ impl Snapshotter for Unionfs {
             flags,
             Some(options.as_str()),
         )
-            .map_err(|e| {
-                anyhow!(
+        .map_err(|e| {
+            anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
                 source,
                 mount_path,
                 e
             )
-            })?;
+        })?;
 
         // clear the mount_path if there is something
         clear_path(mount_path)?;
@@ -265,7 +167,7 @@ impl Snapshotter for Unionfs {
 
         // create environment for Occlum
         create_environment(mount_path)?;
-        println!("Unmount {:#?}", mount_path);
+
         nix::mount::umount(mount_path)?;
 
         Ok(MountPoint {
