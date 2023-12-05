@@ -6,14 +6,17 @@
 
 use std::fs;
 use std::fs::{File, OpenOptions};
+use std::io::{Error, ErrorKind, self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
+use std::ffi::CString;
 
 use anyhow::{anyhow, Context, Result};
 use dircpy::CopyBuilder;
 use fs_extra;
 use fs_extra::dir;
 use nix::mount::MsFlags;
+use rand::Rng;
 
 use ocicrypt_rs::blockcipher::rand::rand_bytes;
 
