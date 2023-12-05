@@ -93,14 +93,14 @@ fn create_environment(mount_path: &Path) -> Result<()> {
     let path_lib64 = mount_path.join("lib64");
     create_dir(&path_lib64)?;
     println!("lib64");
-    
+
 
     let lib64_libs = [LD_LIB];
     let ori_path_lib64 = Path::new("/lib64");
     for lib in lib64_libs.iter() {
         from_paths.push(ori_path_lib64.join(lib));
     }
-    
+
     // if ld-linux-x86-64.so.2 as symlink exist in ${path_lib64},
     // copy ld-linux-x86-64.so.2 from occlum to ${path_lib64} failed (file exists).
     // so firstly remove it.
@@ -175,14 +175,14 @@ impl Snapshotter for Unionfs {
         fs::create_dir_all("/new_key")?;
         // fs::create_dir_all(&sealing_keys_dir)?;
         create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
-        .map_err(|e| {
-            anyhow!(
+            .map_err(|e| {
+                anyhow!(
             "failed to write key file {:?} with error: {}",
             "/key.txt",
             e
         )
-        })?;
-        
+            })?;
+
         let hostfs_fstype = String::from("hostfs");
         let keys_mount_path = Path::new("/keys");
         list_dir_content(Path::new("/"));
@@ -192,7 +192,7 @@ impl Snapshotter for Unionfs {
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some(format!("dir={}", &sealing_keys_dir.display())),
+            Some(format!("dir={}", Path::new("/keys").join(cid).join("sefs/lower");)),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
@@ -201,7 +201,7 @@ impl Snapshotter for Unionfs {
                 e
             )
         })?;
-        
+
         // let key_file_create_path = sealing_keys_dir.join("key.txt");
         let mut copy_options = dir::CopyOptions::new();
         let mut from_paths = Vec::new();
@@ -236,14 +236,14 @@ impl Snapshotter for Unionfs {
             flags,
             Some(options.as_str()),
         )
-        .map_err(|e| {
-            anyhow!(
+            .map_err(|e| {
+                anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
                 source,
                 mount_path,
                 e
             )
-        })?;
+            })?;
 
         // clear the mount_path if there is something
         clear_path(mount_path)?;
@@ -257,7 +257,7 @@ impl Snapshotter for Unionfs {
                 .ok_or(anyhow!("Pop() failed from Vec"))?;
             CopyBuilder::new(layer, mount_path).overwrite(true).run()?;
         }
-        
+
         // create environment for Occlum
         create_environment(mount_path)?;
         println!("Unmount {:#?}", mount_path);
