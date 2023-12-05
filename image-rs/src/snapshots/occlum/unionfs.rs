@@ -167,7 +167,7 @@ impl Snapshotter for Unionfs {
             .file_name()
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
-        let sealing_keys_dir = Path::new("/keys").join(cid).join("sefs/lower");
+        let sealing_keys_dir = Path::new("/images").join(cid).join("sefs/lower");
 
         // For mounting trusted UnionFS at runtime of occlum,
         // you can refer to https://github.com/occlum/occlum/blob/master/docs/runtime_mount.md#1-mount-trusted-unionfs-consisting-of-sefss.
