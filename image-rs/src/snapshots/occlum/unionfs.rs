@@ -174,7 +174,7 @@ impl Snapshotter for Unionfs {
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
         // fs::create_dir_all(&sealing_keys_dir)?;
-        create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
+        create_key_file(&PathBuf::from(Path::new("/key.txt")), &random_key)
             .map_err(|e| {
                 anyhow!(
             "failed to write key file {:?} with error: {}",
@@ -184,7 +184,7 @@ impl Snapshotter for Unionfs {
             })?;
 
         let hostfs_fstype = String::from("hostfs");
-        let keys_mount_path = Path::new("/keys");
+        let keys_mount_path = Path::new("/new_key");
         list_dir_content(Path::new("/"));
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, sealing_keys_dir.display());
 
@@ -210,18 +210,18 @@ impl Snapshotter for Unionfs {
         from_paths.push("/new_key");
         copy_options.overwrite = true;
         println!("copying");
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/sefs/upper/key.txt") {
+        match fs::copy("/key.txt", "/keys/scratch-base_v1.8/sefs/upper/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/sefs/lower/key.txt") {
+        match fs::copy("/key.txt", "/keys/scratch-base_v1.8/sefs/lower/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
-        match fs_extra::copy_items(&from_paths, &Path::new("/keys"), &copy_options) {
-            Ok(_) => println!("File fs_extra_copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
-        }
+        // match fs_extra::copy_items(&from_paths, &Path::new("/keys"), &copy_options) {
+        //     Ok(_) => println!("File fs_extra_copied successfully"),
+        //     Err(e) => println!("Failed to copy file: {}", e),
+        // }
         println!("Unmount {:#?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
