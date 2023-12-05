@@ -188,10 +188,10 @@ impl Snapshotter for Unionfs {
             )
             })?;
 
-        // match fs::copy("/new_key/key.txt", "/keys/key.txt") {
-        //     Ok(_) => println!("File copied successfully"),
-        //     Err(e) => println!("Failed to copy file: {}", e),
-        // }
+        match fs::copy("/new_key/key.txt", "/keys/key.txt") {
+            Ok(_) => println!("File copied successfully"),
+            Err(e) => println!("Failed to copy file: {}", e),
+        }
 
         println!("clear path {:?}", keys_mount_path);
         clear_path(keys_mount_path)?;
