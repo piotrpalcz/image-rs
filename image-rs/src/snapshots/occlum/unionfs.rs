@@ -170,11 +170,11 @@ impl Snapshotter for Unionfs {
 
         let flags = MsFlags::empty();
 
-
-        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options_2.as_str());
+        let keys_mount_path = Path::new("/keys");
+        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, options_2.as_str());
         nix::mount::mount(
             Some(source),
-            mount_path,
+            keys_mount_path,
             Some(fs_type.as_str()),
             flags,
             Some(options_2.as_str()),
@@ -183,11 +183,20 @@ impl Snapshotter for Unionfs {
                 anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
                 source,
-                mount_path,
+                keys_mount_path,
                 e
             )
             })?;
 
+        // match fs::copy("/new_key/key.txt", "/keys/key.txt") {
+        //     Ok(_) => println!("File copied successfully"),
+        //     Err(e) => println!("Failed to copy file: {}", e),
+        // }
+
+        println!("clear path {:?}", keys_mount_path);
+        clear_path(keys_mount_path)?;
+        println!("Unmount {:?}", keys_mount_path);
+        nix::mount::umount(keys_mount_path)?;
 
 
         let options = format!(
@@ -196,6 +205,7 @@ impl Snapshotter for Unionfs {
             random_key
         );
 
+        println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options.as_str());
         nix::mount::mount(
             Some(source),
             mount_path,
