@@ -187,12 +187,14 @@ impl Snapshotter for Unionfs {
         let keys_mount_path = Path::new("/keys");
         list_dir_content(Path::new("/"));
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, sealing_keys_dir.display());
+
+        let options_2 = format!("dir={:?}", Path::new("/keys").join(cid).join("sefs/lower"));
         nix::mount::mount(
             Some(source),
             keys_mount_path,
             Some(fs_type.as_str()),
             flags,
-            Some(format!("dir={:?}", Path::new("/keys").join(cid).join("sefs/lower"))),
+            Some(options_2.as_str()),
         ).map_err(|e| {
             anyhow!(
                 "failed to mount {:?} to {:?}, with error: {}",
