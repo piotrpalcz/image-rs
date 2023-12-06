@@ -193,8 +193,8 @@ impl Snapshotter for Unionfs {
             Err(e) => println!("Failed to copy file: {}", e),
         }
 
-        println!("clear path {:?}", keys_mount_path);
-        clear_path(keys_mount_path)?;
+        // println!("clear path {:?}", keys_mount_path);
+        // clear_path(keys_mount_path)?;
         println!("Unmount {:?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
