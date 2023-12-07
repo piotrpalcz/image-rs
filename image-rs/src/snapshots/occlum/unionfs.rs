@@ -202,7 +202,7 @@ impl Snapshotter for Unionfs {
         let options = format!(
             "dir={},key={}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
-            random_key
+            "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61"
         );
 
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options.as_str());
