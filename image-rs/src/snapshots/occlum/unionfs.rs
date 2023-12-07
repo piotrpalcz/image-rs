@@ -153,7 +153,7 @@ impl Snapshotter for Unionfs {
 
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        create_key_file(&PathBuf::from(Path::new("/new_key").join(cid).join("key.txt"), &random_key))
+        create_key_file(&PathBuf::from(Path::new("/new_key").join(cid).join("key.txt")), &random_key)
             .map_err(|e| {
                 anyhow!(
             "failed to write key file {:?} with error: {}",
