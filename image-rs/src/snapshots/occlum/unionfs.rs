@@ -188,7 +188,7 @@ impl Snapshotter for Unionfs {
             )
             })?;
 
-        match fs::copy("/new_key/key.txt", "/keys/key.txt") {
+        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/key.txt") {
             Ok(_) => println!("File copied successfully"),
             Err(e) => println!("Failed to copy file: {}", e),
         }
