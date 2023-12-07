@@ -153,7 +153,7 @@ impl Snapshotter for Unionfs {
 
         let random_key = generate_random_key();
         fs::create_dir_all("/new_key")?;
-        create_key_file(&PathBuf::from(Path::new("/new_key/key.txt")), &random_key)
+        create_key_file(&PathBuf::from(Path::new("/new_key").join(cid).join("key.txt"), &random_key))
             .map_err(|e| {
                 anyhow!(
             "failed to write key file {:?} with error: {}",
@@ -181,17 +181,34 @@ impl Snapshotter for Unionfs {
         )
             .map_err(|e| {
                 anyhow!(
-                "failed to mount {:?} to {:?}, with error: {}",
-                source,
-                keys_mount_path,
-                e
+            "failed to mount {:?} to {:?}, with error: {}",
+            source,
+            keys_mount_path,
+            e
             )
             })?;
+        let mut copy_options = CopyOptions::new();
+        copy_options.overwrite = true;
+        let paths = fs::read_dir("/new_key").unwrap();
 
-        match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/key.txt") {
-            Ok(_) => println!("File copied successfully"),
-            Err(e) => println!("Failed to copy file: {}", e),
+        for entry in paths {
+            let path = entry.unwrap().path();
+            println!("Name: {}", path.display());
+            dir::copy(path, "/keys", &copy_options).unwrap();
         }
+
+        println!("List directories in {:#?}", keys_mount_path);
+        let paths = fs::read_dir("/keys").unwrap();
+
+        for path in paths {
+            println!("Name: {}", path.unwrap().path().display())
+        }
+
+
+        // match fs::copy("/new_key/key.txt", "/keys/scratch-base_v1.8/key.txt") {
+        //     Ok(_) => println!("File copied successfully"),
+        //     Err(e) => println!("Failed to copy file: {}", e),
+        // }
 
         // println!("clear path {:?}", keys_mount_path);
         // clear_path(keys_mount_path)?;
