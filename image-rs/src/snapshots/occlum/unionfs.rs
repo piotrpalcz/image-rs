@@ -187,7 +187,7 @@ impl Snapshotter for Unionfs {
             e
             )
             })?;
-        let mut copy_options = CopyOptions::new();
+        let mut copy_options = dir::CopyOptions::new();
         copy_options.overwrite = true;
         let paths = fs::read_dir("/new_key").unwrap();
 
