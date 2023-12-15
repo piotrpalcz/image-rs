@@ -154,18 +154,20 @@ impl Snapshotter for Unionfs {
         let random_key = generate_random_key();
         let new_keys_path = Path::new("/new_key").join(cid);
         fs::create_dir_all(&new_keys_path)?;
-        create_key_file(&PathBuf::from(&new_keys_path.join("key.txt")), &random_key)
-            .map_err(|e| {
-                anyhow!(
-            "failed to write key file {:?} with error: {}",
-            "/key.txt",
-            e
+        create_key_file(
+            &PathBuf::from(&new_keys_path.join("key.txt")), 
+            &random_key)
+        .map_err(|e| {
+            anyhow!(
+                "failed to write key file {:?} with error: {}",
+                "/key.txt",
+                e
             )
-            })?;
+        })?;
 
         let options_2 = format!(
             "dir={},key={}",
-            Path::new("/keys").join(cid).join("sefs/lower").display(),
+            Path::new("/images").join(cid).join("keys/sefs/lower").display(),
             "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61"
         );
 
@@ -175,20 +177,20 @@ impl Snapshotter for Unionfs {
         let keys_mount_path = Path::new("/keys");
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, keys_mount_path, fs_type, flags, options_2.as_str());
         nix::mount::mount(
-            Some(source),
+            Some(source), //"sefs"
             keys_mount_path,
-            Some(fs_type.as_str()),
+            Some(fs_type.as_str()), //"sefs"
             flags,
             Some(options_2.as_str()),
         )
-            .map_err(|e| {
-                anyhow!(
-            "failed to mount {:?} to {:?}, with error: {}",
-            source,
-            keys_mount_path,
-            e
+        .map_err(|e| {
+            anyhow!(
+                "failed to mount {:?} to {:?}, with error: {}",
+                source,
+                keys_mount_path,
+                e
             )
-            })?;
+        })?;
         let mut copy_options = dir::CopyOptions::new();
         copy_options.overwrite = true;
         let paths = fs::read_dir("/new_key").unwrap();
@@ -212,8 +214,8 @@ impl Snapshotter for Unionfs {
         //     Err(e) => println!("Failed to copy file: {}", e),
         // }
 
-        // println!("clear path {:?}", keys_mount_path);
-        // clear_path(keys_mount_path)?;
+        println!("clear path {:?}", keys_mount_path);
+        clear_path(keys_mount_path)?;
         println!("Unmount {:?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
@@ -227,7 +229,7 @@ impl Snapshotter for Unionfs {
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options.as_str());
         nix::mount::mount(
             Some(source),
-            mount_path,
+            mount_path, // /run/rune/Occlum_instance
             Some(fs_type.as_str()),
             flags,
             Some(options.as_str()),
