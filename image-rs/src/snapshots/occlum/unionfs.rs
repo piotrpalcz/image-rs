@@ -198,8 +198,6 @@ impl Snapshotter for Unionfs {
             Err(e) => println!("Failed to copy file: {}", e),
         }
 
-        // println!("clear path {:?}", keys_mount_path);
-        // clear_path(keys_mount_path)?;
         println!("Unmount {:?}", keys_mount_path);
         nix::mount::umount(keys_mount_path)?;
 
@@ -207,7 +205,7 @@ impl Snapshotter for Unionfs {
         let options = format!(
             "dir={},key={}",
             Path::new("/images").join(cid).join("sefs/lower").display(),
-            "c7-32-b3-ed-44-df-ec-7b-25-2d-9a-32-38-8d-58-61"
+            random_key
         );
 
         println!("{:#?} {:#?} {:#?} {:#?} {:#?}", source, mount_path, fs_type, flags, options.as_str());
