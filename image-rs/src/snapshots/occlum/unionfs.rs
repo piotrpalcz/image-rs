@@ -152,7 +152,7 @@ impl Snapshotter for Unionfs {
             .ok_or(anyhow!("Unknown error: file name parse fail"))?;
 
         let random_key = generate_random_key();
-        let new_keys_path = Path::new("/new_key").join(cid);
+        let new_keys_path = Path::new("/new_key");
         fs::create_dir_all(&new_keys_path)?;
         create_key_file(
             &PathBuf::from(&new_keys_path.join("key.txt")), 
